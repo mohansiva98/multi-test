@@ -1,32 +1,45 @@
 pipeline {
   agent any
 
+  environment {
+    BRANCH = env.BRANCH_NAME  // auto-detect the Git branch
+  }
+
   stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
     stage('Build') {
       steps {
-        script {
-          def BRANCH = env.BRANCH_NAME
-          echo "Running Build for branch: ${BRANCH}"
-          sh './build.sh'
-        }
+        echo "Running Build for branch: ${BRANCH}"
+        sh './build.sh'
       }
     }
 
     stage('Deploy') {
       steps {
         script {
-          def BRANCH = env.BRANCH_NAME
           if (BRANCH == 'dev') {
             echo 'Deploying to DEV environment'
             sh './deploy-dev.sh'
-          } else if (BRANCH == 'prod') {
+          } else if (BRANCH == 'main') {
             echo 'Deploying to PROD environment'
             sh './deploy-prod.sh'
           } else {
-            echo "Unknown branch — skipping deployment"
+            echo "Skipping deployment for branch: ${BRANCH}"
           }
         }
       }
+    }
+  }
+
+  post {
+    always {
+      echo "Cleaning up"
+      // Docker cleanup (optional)
     }
   }
 }
